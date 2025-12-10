@@ -50,7 +50,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                @await Html.PartialAsync("_Create")
+                @await Html.PartialAsync("_StudentModal")
             </div>
         </div>
     </div>
@@ -69,10 +69,11 @@
     <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 
     <script>
-        let dataTable;
+             let dataTable;
+        let modalsLoaded = false;
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Inizializza DataTable con AJAX
+            // Inizializza DataTable
             dataTable = $('#studentsTable').DataTable({
                 ajax: {
                     url: '@Url.Action("GetStudents", "Home")',
@@ -113,82 +114,322 @@
                 processing: true
             });
 
-            const form = document.querySelector('#addStudentModal form');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('addStudentModal')) ||
-                         new bootstrap.Modal(document.getElementById('addStudentModal'));
+            let studentIdToDelete = null;
 
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
+            // Funzione per caricare i modal da partial view
+            async function loadModals() {
+                if (modalsLoaded) {
+                    console.log('Modal già caricati');
+                    return true;
+                }
 
-                // Validazione form
-                if (!form.checkValidity()) {
-                    form.classList.add('was-validated');
+                console.log('Caricamento modal in corso...');
+
+                try {
+                    const response = await fetch('@Url.Action("GetStudentModals", "Home")');
+                    console.log('Response status:', response.status);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const html = await response.text();
+                    console.log('HTML ricevuto, lunghezza:', html.length);
+
+                    // Crea un container per i modal se non esiste
+                    let modalContainer = document.getElementById('modalContainer');
+                    if (!modalContainer) {
+                        modalContainer = document.createElement('div');
+                        modalContainer.id = 'modalContainer';
+                        document.body.appendChild(modalContainer);
+                    }
+
+                    modalContainer.innerHTML = html;
+                    modalsLoaded = true;
+
+                    console.log('Modal inseriti nel DOM');
+                    console.log('editStudentModal presente?', document.getElementById('editStudentModal') !== null);
+                    console.log('deleteStudentModal presente?', document.getElementById('deleteStudentModal') !== null);
+
+                    // Inizializza gli event handler dei modal dopo il caricamento
+                    initializeModalHandlers();
+
+                    return true;
+                } catch (error) {
+                    console.error('Errore nel caricamento dei modal:', error);
+                    alert('Errore: ' + error.message + '\n\nAssicurati che esista l\'action GetStudentModals nel controller Home');
+                    return false;
+                }
+            }
+
+            // Funzione per inizializzare gli handler dei modal
+            function initializeModalHandlers() {
+                console.log('Inizializzazione handler modal...');
+
+                // Form di modifica studente
+                const editForm = document.getElementById('editStudentForm');
+                console.log('editForm trovato?', editForm !== null);
+
+                if (editForm && !editForm.dataset.initialized) {
+                    editForm.dataset.initialized = 'true';
+                    editForm.addEventListener('submit', async function(e) {
+                        e.preventDefault();
+
+                        if (!editForm.checkValidity()) {
+                            editForm.classList.add('was-validated');
+                            return;
+                        }
+
+                        const formData = {
+                            Id: parseInt(document.getElementById('EditId').value),
+                            Name: document.getElementById('EditName').value,
+                            Lastname: document.getElementById('EditLastname').value,
+                            Email: document.getElementById('EditEmail').value,
+                            DateOfBirth: document.getElementById('EditDateOfBirth').value
+                        };
+
+                        const submitBtn = editForm.querySelector('button[type="submit"]');
+                        const originalText = submitBtn.innerHTML;
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+
+                        try {
+                            const response = await fetch('@Url.Action("UpdateStudent", "Home")', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(formData)
+                            });
+
+                            const result = await response.json();
+
+                            if (result.success) {
+                                showAlert('success', result.message);
+                                $('#editStudentModal').modal('hide');
+                                dataTable.ajax.reload(null, false);
+                            } else {
+                                showAlert('danger', result.message || 'Errore durante l\'aggiornamento');
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            showAlert('danger', 'Errore di rete durante l\'aggiornamento');
+                        } finally {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+                            editForm.classList.remove('was-validated');
+                        }
+                    });
+                    console.log('Handler editForm aggiunto');
+                }
+
+                // Conferma eliminazione
+                const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+                console.log('confirmDeleteBtn trovato?', confirmDeleteBtn !== null);
+
+                if (confirmDeleteBtn && !confirmDeleteBtn.dataset.initialized) {
+                    confirmDeleteBtn.dataset.initialized = 'true';
+                    confirmDeleteBtn.addEventListener('click', async function() {
+                        console.log('Conferma delete cliccato, ID:', studentIdToDelete);
+
+                        if (!studentIdToDelete) {
+                            alert('Nessuno studente selezionato');
+                            return;
+                        }
+
+                        const originalText = this.innerHTML;
+                        this.disabled = true;
+                        this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Deleting...';
+
+                        try {
+                            const response = await fetch(`@Url.Action("DeleteStudent", "Home")?id=${studentIdToDelete}`, {
+                                method: 'POST'
+                            });
+
+                            const result = await response.json();
+
+                            if (result.success) {
+                                showAlert('success', result.message);
+                                $('#deleteStudentModal').modal('hide');
+                                dataTable.ajax.reload(null, false);
+                            } else {
+                                showAlert('danger', result.message || 'Errore durante l\'eliminazione');
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            showAlert('danger', 'Errore di rete durante l\'eliminazione');
+                        } finally {
+                            this.disabled = false;
+                            this.innerHTML = originalText;
+                            studentIdToDelete = null;
+                        }
+                    });
+                    console.log('Handler confirmDeleteBtn aggiunto');
+                }
+            }
+
+            // Handler per il pulsante Edit
+            $('#studentsTable tbody').on('click', '.btn-edit', async function() {
+                console.log('Pulsante Edit cliccato');
+
+                const rowData = dataTable.row($(this).parents('tr')).data();
+                console.log('Dati riga:', rowData);
+
+                // Carica i modal se non sono ancora stati caricati
+                const loaded = await loadModals();
+                if (!loaded) {
+                    console.error('Impossibile caricare i modal');
                     return;
                 }
 
-                // Raccogli i dati dal form
-                const formData = {
-                    Name: document.getElementById('Name').value,
-                    Lastname: document.getElementById('Lastname').value,
-                    Email: document.getElementById('Email').value,
-                    DateOfBirth: document.getElementById('DateOfBirth').value
-                };
+                // Verifica che il modal esista
+                const modalElement = document.getElementById('editStudentModal');
+                console.log('Modal editStudentModal trovato?', modalElement !== null);
 
-                // Disabilita il pulsante submit
-                const submitBtn = form.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+                if (!modalElement) {
+                    alert('Errore: Modal di modifica non trovato nel DOM');
+                    return;
+                }
 
+                // Popola i campi del form
                 try {
-                    const response = await fetch('@Url.Action("AddingStudent", "Home")', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(formData)
-                    });
+                    document.getElementById('EditId').value = rowData.id;
+                    document.getElementById('EditName').value = rowData.name;
+                    document.getElementById('EditLastname').value = rowData.lastname;
+                    document.getElementById('EditEmail').value = rowData.email;
 
-                    const result = await response.json();
-
-                    if (result.success) {
-                        // Mostra messaggio di successo
-                        showAlert('success', result.message);
-
-                        // Reset form
-                        form.reset();
-                        form.classList.remove('was-validated');
-
-                        // Ricarica DataTable con AJAX
-                        dataTable.ajax.reload();
-
-                        // Chiudi modal dopo 1 secondo
-                        setTimeout(() => {
-                            modal.hide();
-                        }, 1000);
-                    } else {
-                        // Mostra errore
-                        showAlert('danger', result.message || 'Errore durante il salvataggio');
+                    // Formatta la data
+                    if (rowData.dateOfBirth) {
+                        const date = new Date(rowData.dateOfBirth);
+                        const yyyy = date.getFullYear();
+                        const mm = String(date.getMonth() + 1).padStart(2, '0');
+                        const dd = String(date.getDate()).padStart(2, '0');
+                        document.getElementById('EditDateOfBirth').value = `${yyyy}-${mm}-${dd}`;
                     }
+
+                    console.log('Campi popolati correttamente');
                 } catch (error) {
-                    console.error('Error:', error);
-                    showAlert('danger', 'Si è verificato un errore durante la comunicazione con il server');
-                } finally {
-                    // Riabilita il pulsante
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
+                    console.error('Errore nel popolare i campi:', error);
+                    alert('Errore nel popolare i campi del form');
+                    return;
+                }
+
+                // Mostra il modal
+                console.log('Tentativo di aprire il modal...');
+                try {
+                    $('#editStudentModal').modal('show');
+                    console.log('Modal aperto con successo');
+                } catch (error) {
+                    console.error('Errore nell\'aprire il modal:', error);
+                    alert('Errore nell\'aprire il modal: ' + error.message);
                 }
             });
+
+            // Handler per il pulsante Delete
+            $('#studentsTable tbody').on('click', '.btn-delete', async function() {
+                console.log('Pulsante Delete cliccato');
+
+                studentIdToDelete = $(this).data('id');
+                console.log('ID studente da eliminare:', studentIdToDelete);
+
+                // Carica i modal se non sono ancora stati caricati
+                const loaded = await loadModals();
+                if (!loaded) {
+                    console.error('Impossibile caricare i modal');
+                    return;
+                }
+
+                // Verifica che il modal esista
+                const modalElement = document.getElementById('deleteStudentModal');
+                console.log('Modal deleteStudentModal trovato?', modalElement !== null);
+
+                if (!modalElement) {
+                    alert('Errore: Modal di eliminazione non trovato nel DOM');
+                    return;
+                }
+
+                const spanElement = document.getElementById('studentIdToDelete');
+                if (spanElement) {
+                    spanElement.textContent = studentIdToDelete;
+                } else {
+                    console.warn('Elemento studentIdToDelete non trovato');
+                }
+
+                // Mostra il modal
+                console.log('Tentativo di aprire il modal delete...');
+                try {
+                    $('#deleteStudentModal').modal('show');
+                    console.log('Modal delete aperto con successo');
+                } catch (error) {
+                    console.error('Errore nell\'aprire il modal delete:', error);
+                    alert('Errore nell\'aprire il modal: ' + error.message);
+                }
+            });
+
+            // Form di aggiunta studente (se presente nella pagina)
+            const addForm = document.querySelector('#studentForm');
+            if (addForm) {
+                addForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    if (!addForm.checkValidity()) {
+                        addForm.classList.add('was-validated');
+                        return;
+                    }
+
+                    const formData = {
+                        Name: document.getElementById('Name').value,
+                        Lastname: document.getElementById('Lastname').value,
+                        Email: document.getElementById('Email').value,
+                        DateOfBirth: document.getElementById('DateOfBirth').value
+                    };
+
+                    const submitBtn = addForm.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+
+                    try {
+                        const response = await fetch('@Url.Action("AddingStudent", "Home")', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(formData)
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showAlert('success', result.message);
+                            addForm.reset();
+                            addForm.classList.remove('was-validated');
+                            dataTable.ajax.reload();
+
+                            const addModal = document.getElementById('addStudentModal');
+                            if (addModal) {
+                                setTimeout(() => $('#addStudentModal').modal('hide'), 1000);
+                            }
+                        } else {
+                            showAlert('danger', result.message || 'Errore durante il salvataggio');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showAlert('danger', 'Errore di comunicazione con il server');
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    }
+                });
+            }
 
             // Funzione per mostrare alert
             function showAlert(type, message) {
                 const alertContainer = document.getElementById('alertContainer');
-                alertContainer.innerHTML = `
-                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                        ${message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                `;
+                if (alertContainer) {
+                    alertContainer.innerHTML = `
+                        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                            ${message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `;
+                }
             }
         });
     </script>

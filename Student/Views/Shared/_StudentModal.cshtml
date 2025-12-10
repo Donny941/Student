@@ -1,0 +1,60 @@
+﻿
+<!-- Modal Edit Student -->
+<div class="modal fade" id="editStudentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">Edit Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editStudentForm" novalidate>
+                <div class="modal-body">
+                    <input type="hidden" id="EditId" name="Id" />
+                    <div class="mb-3">
+                        <label for="EditName" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="EditName" required>
+                        <div class="invalid-feedback">Please enter a first name.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="EditLastname" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="EditLastname" required>
+                        <div class="invalid-feedback">Please enter a last name.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="EditEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="EditEmail" required>
+                        <div class="invalid-feedback">Please enter a valid email.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="EditDateOfBirth" class="form-label">Date of Birth</label>
+                        <input type="date" class="form-control" id="EditDateOfBirth" required>
+                        <div class="invalid-feedback">Please enter a date of birth.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-warning">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Delete Student -->
+<div class="modal fade" id="deleteStudentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete student ID: <span id="studentIdToDelete" class="fw-bold"></span>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Confirm Delete</button>
+            </div>
+        </div>
+    </div>
+</div>

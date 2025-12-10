@@ -20,5 +20,8 @@ namespace StudentDashboard.Models.Entities
         [Required]
         [EmailAddress]
         public string Email { get; set; }
+
+
+        public bool IsDeleted { get; set; }
     }
 }
