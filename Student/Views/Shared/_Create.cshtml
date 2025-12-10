@@ -1,49 +1,31 @@
 ﻿@model StudentDashboard.Models.Entities.Student
 
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="card shadow-lg p-4 mb-5 bg-white rounded">
-            <div class="card-header bg-primary text-white text-center">
-                <h3 class="mb-0">New Student Registration</h3>
-            </div>
-            <div class="card-body">
-                <form asp-action="Create" method="post">
-
-                    <div class="mb-3">
-                        <label asp-for="Name" class="form-label">First Name:</label>
-                        <input asp-for="Name" type="text" class="form-control" placeholder="Enter first name" required />
-                        <span asp-validation-for="Name" class="text-danger"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Lastname" class="form-label">Last Name:</label>
-                        <input asp-for="Lastname" type="text" class="form-control" placeholder="Enter last name" required />
-                        <span asp-validation-for="Lastname" class="text-danger"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Email" class="form-label">Email Address:</label>
-                        <input asp-for="Email" type="email" class="form-control" placeholder="example@domain.com" required />
-                        <span asp-validation-for="Email" class="text-danger"></span>
-                    </div>
-
-                    <div class="mb-4">
-                        <label asp-for="DateOfBirth" class="form-label">Date of Birth:</label>
-                        <input asp-for="DateOfBirth" type="date" class="form-control" required />
-                        <span asp-validation-for="DateOfBirth" class="text-danger"></span>
-                    </div>
-
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-success btn-lg">Register Student</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+<form id="studentForm">
+    <div class="mb-3">
+        <label asp-for="Name" class="form-label">First Name:</label>
+        <input asp-for="Name" type="text" class="form-control" placeholder="Enter first name" required />
+        <span asp-validation-for="Name" class="text-danger"></span>
     </div>
-</div>
+    <div class="mb-3">
+        <label asp-for="Lastname" class="form-label">Last Name:</label>
+        <input asp-for="Lastname" type="text" class="form-control" placeholder="Enter last name" required />
+        <span asp-validation-for="Lastname" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label">Email Address:</label>
+        <input asp-for="Email" type="email" class="form-control" placeholder="example@domain.com" required />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="DateOfBirth" class="form-label">Date of Birth:</label>
+        <input asp-for="DateOfBirth" type="date" class="form-control" required />
+        <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+    </div>
 
-@section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-}
+
+    <div id="alertContainer"></div>
+
+    <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-success btn-lg">Register Student</button>
+    </div>
+</form>
